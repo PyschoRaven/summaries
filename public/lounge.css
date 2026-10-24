@@ -37,3 +37,9 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 @keyframes lounge-dot-inner{0%,100%{opacity:1}50%{opacity:0}}
 .motion-paused .ambient-scene .lounge-mote,.motion-paused .ambient-scene .lounge-mote::after{animation-play-state:paused!important}
 @media(prefers-reduced-motion:reduce){.ambient-scene .lounge-mote,.ambient-scene .lounge-mote::after{animation:none!important}.ambient-scene .lounge-mote::after{opacity:1}.ambient-scene .lounge-mote-hollow::after{opacity:0}}
+
+/* Bundle Arabic typography so local and hosted browsers use the same font. */
+@font-face{font-family:'Study Quran Arabic';src:url('fonts/NotoNaskhArabic.ttf') format('truetype');font-style:normal;font-weight:100 900;font-display:swap}
+#chapter-three .quran-arabic{font-family:'Study Quran Arabic',serif!important;font-size:28px!important;font-weight:400!important;line-height:2.1!important;letter-spacing:normal!important;font-synthesis:none}
+.quran-actions .btn:focus:not(:focus-visible){outline:none}
+.quran-actions .btn:focus-visible{outline:2px solid var(--l-sage)!important;outline-offset:4px}
