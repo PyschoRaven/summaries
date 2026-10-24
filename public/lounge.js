@@ -116,10 +116,10 @@
 })();
 // Record section reading time, following the most recently opened/used section.
 (()=>{
- const chapter=Number(document.body.dataset.chapter);if(!chapter)return;const sections=[...document.querySelectorAll('main details.section')];if(!sections.length)return;
+ const chapter=Number(document.body.dataset.chapter)||Number(location.pathname.match(/chapter-(\d+)/)?.[1]);if(!chapter)return;const sections=[...document.querySelectorAll('main details.section')];if(!sections.length)return;
  const key='study-chapter-'+chapter+'-section-times';let saved={};try{saved=JSON.parse(localStorage.getItem(key))||{}}catch(e){}
  const records=sections.map((section,i)=>{const old=saved[i]||{};return{elapsed:Number.isFinite(old.elapsed)&&old.elapsed>=0?old.elapsed:0,completedMs:Number.isFinite(old.completedMs)&&old.completedMs>=0?old.completedMs:null}});
- let active=sections.findIndex(s=>s.open),last=Date.now();const labels=[];const checks=sections.map(s=>s.querySelector('input[type="checkbox"]'));
+ let active=sections.findIndex(s=>s.id===location.hash.slice(1)&&s.open);if(active<0)active=sections.findIndex(s=>s.open);let last=Date.now();document.body.dataset.sectionTimingReady='true';const labels=[];const checks=sections.map(s=>s.querySelector('input[type="checkbox"]'));
  function persist(){try{localStorage.setItem(key,JSON.stringify(records))}catch(e){}}
  function collect(){const now=Date.now();if(active>=0&&!document.hidden&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now}
  function format(ms){const t=Math.max(1,Math.round(ms/1000)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return(h?h+'h ':'')+(m?m+'m ':'')+(s||!h&&!m?s+'s':'')}
