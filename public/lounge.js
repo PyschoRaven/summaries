@@ -74,3 +74,43 @@
  function tick(){clearTimeout(timer);paused=get('study-breaks-paused')==='true';draw();if(paused){timer=setTimeout(tick,30000);return}due=Number(get('study-break-due'))||due;if(!document.hidden&&Date.now()>=due){due=Date.now()+period;set('study-break-due',due);toast.hidden=false;message.textContent=messages[index++%messages.length]}timer=setTimeout(tick,Math.max(250,Math.min(due-Date.now(),30000)))}
  toggle.addEventListener('click',()=>{paused=!paused;set('study-breaks-paused',paused);if(paused)toast.hidden=true;else{due=Date.now()+period;set('study-break-due',due)}tick()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});window.addEventListener('storage',e=>{if(e.key==='study-breaks-paused'||e.key==='study-break-due')tick()});draw();tick();
 })();
+// Visit clock survives chapter navigation; per-chapter reading time is saved locally.
+(()=>{
+ const root=document.getElementById('chapter-three');if(!root)return;
+ const chapter=Number(document.body.dataset.chapter)||0;
+ const read=(store,key)=>{try{return store.getItem(key)}catch(e){return null}};
+ const write=(store,key,value)=>{try{store.setItem(key,String(value))}catch(e){}};
+ const now=Date.now();let start=Number(read(sessionStorage,'study-visit-start'));
+ if(!start||start>now){start=now;write(sessionStorage,'study-visit-start',start)}
+ const format=ms=>{const seconds=Math.max(0,Math.floor(ms/1000));return [Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':')};
+ const panel=document.createElement('div');panel.className='study-clocks';panel.setAttribute('aria-label','Study time');
+ const visit=document.createElement('span');visit.className='study-clock';const visitLabel=document.createElement('span');visitLabel.textContent='This visit';const visitValue=document.createElement('span');visitValue.className='study-clock-value';panel.append(visit);visit.append(visitLabel,visitValue);
+ let chapterValue;
+ if(chapter){const clock=document.createElement('span');clock.className='study-clock';const label=document.createElement('span');label.textContent='Chapter '+chapter+' · total time';chapterValue=document.createElement('span');chapterValue.className='study-clock-value';clock.append(label,chapterValue);panel.append(clock)}
+ const bar=root.querySelector('.lounge-bar');if(bar)bar.after(panel);else root.prepend(panel);
+ const key='study-chapter-'+chapter+'-time-ms';let last=now,pending=0,lastSave=now;
+ const total=()=>Math.max(0,Number(read(localStorage,key))||0);
+ function collect(){const t=Date.now();if(!document.hidden&&chapter)pending+=Math.max(0,t-last);last=t}
+ function persist(){if(chapter&&pending>0){write(localStorage,key,total()+pending);pending=0}lastSave=Date.now()}
+ function updateCards(){root.querySelectorAll('[data-progress-chapter]').forEach(card=>{const n=Number(card.dataset.progressChapter);let time=card.querySelector('.chapter-time-spent');if(!time){time=document.createElement('span');time.className='chapter-time-spent';card.append(time)}const saved=Math.max(0,Number(read(localStorage,'study-chapter-'+n+'-time-ms'))||0);time.textContent='Time studied · '+format(saved)})}
+ function draw(){visitValue.textContent=format(Date.now()-start);if(chapterValue)chapterValue.textContent=format(total()+pending)}
+ function tick(){collect();if(Date.now()-lastSave>=5000)persist();draw()}
+ document.addEventListener('visibilitychange',()=>{const t=Date.now();if(document.hidden&&chapter)pending+=Math.max(0,t-last);last=t;persist();draw();if(!document.hidden)updateCards()});
+ window.addEventListener('pagehide',()=>{collect();persist()});window.addEventListener('pageshow',()=>{last=Date.now();draw();updateCards()});window.addEventListener('storage',e=>{if(e.key?.endsWith('-time-ms')){draw();updateCards()}});
+ draw();updateCards();setInterval(tick,1000);
+})();
+// Optional section challenges; one active countdown per browser tab.
+(()=>{
+ const root=document.getElementById('chapter-three');if(!root)return;const chapter=Number(document.body.dataset.chapter)||0,key='study-section-challenge';
+ function get(){try{return JSON.parse(sessionStorage.getItem(key))}catch(e){return null}}function save(s){try{if(s)sessionStorage.setItem(key,JSON.stringify(s));else sessionStorage.removeItem(key)}catch(e){}}
+ let state=get();if(state&&(!Number.isFinite(state.deadline)||!Number.isInteger(state.chapter)||state.chapter<1||state.chapter>8))state=null;
+ const banner=document.createElement('div');banner.className='challenge-banner';banner.hidden=true;const heading=document.createElement('strong');heading.textContent='Section challenge';const status=document.createElement('span');status.className='challenge-status';status.setAttribute('role','status');const countdown=document.createElement('span');countdown.className='challenge-countdown';const link=document.createElement('a');link.textContent='Go to section';link.className='challenge-return';const finish=document.createElement('button');finish.className='btn';finish.type='button';finish.textContent='Finished';const stop=document.createElement('button');stop.className='btn';stop.type='button';stop.textContent='Stop';banner.append(heading,status,countdown,link,finish,stop);const clocks=root.querySelector('.study-clocks');if(clocks)clocks.after(banner);else root.prepend(banner);
+ function draw(){banner.hidden=!state;if(!state)return;const remaining=Math.max(0,Math.ceil((state.deadline-Date.now())/1000));status.textContent='Chapter '+state.chapter+' · '+state.title;link.href='chapter-'+state.chapter+'.html#study-section-'+state.section;countdown.textContent=remaining?String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0'):'Time’s up — finish at your own pace.';banner.classList.toggle('challenge-expired',remaining===0)}
+ finish.addEventListener('click',()=>{if(!state)return;const n=state.chapter,i=state.section;if(n===chapter){const check=root.querySelector('#study-section-'+i+' input[type="checkbox"]');if(check&&!check.checked){check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}))}}state=null;save(null);draw()});stop.addEventListener('click',()=>{state=null;save(null);draw()});
+ root.querySelectorAll('main details.section').forEach((section,index)=>{
+  section.id='study-section-'+index;const title=section.querySelector('summary').textContent.trim();const controls=document.createElement('div');controls.className='section-challenge';const open=document.createElement('button');open.className='btn';open.type='button';open.textContent='Challenge';open.setAttribute('aria-expanded','false');
+  const panel=document.createElement('div');panel.className='challenge-setup';panel.hidden=true;panel.id='challenge-setup-'+index;open.setAttribute('aria-controls',panel.id);const label=document.createElement('label');label.textContent='Finish this section in ';const input=document.createElement('input');input.type='number';input.min='1';input.max='180';input.step='1';input.value='10';input.setAttribute('aria-label','Challenge duration in minutes');label.append(input,document.createTextNode(' minutes'));const start=document.createElement('button');start.className='btn btn-primary';start.type='button';start.textContent='Start timer';const error=document.createElement('span');error.className='challenge-error';error.setAttribute('role','alert');panel.append(label,start,error);controls.append(open,panel);section.querySelector('.reading').prepend(controls);
+  open.addEventListener('click',()=>{panel.hidden=!panel.hidden;open.setAttribute('aria-expanded',String(!panel.hidden))});start.addEventListener('click',()=>{const minutes=Number(input.value);if(!Number.isInteger(minutes)||minutes<1||minutes>180){error.textContent='Choose a whole number from 1 to 180 minutes.';return}error.textContent='';state={chapter,section:index,title,deadline:Date.now()+minutes*60000};save(state);panel.hidden=true;open.setAttribute('aria-expanded','false');draw()});const check=section.querySelector('input[type="checkbox"]');if(check)check.addEventListener('change',()=>{if(check.checked&&state?.chapter===chapter&&state.section===index){state=null;save(null);draw()}});
+ });
+ window.addEventListener('hashchange',()=>{const section=root.querySelector(location.hash.startsWith('#study-section-')?location.hash:'#no-active-section');if(section)section.open=true});if(location.hash.startsWith('#study-section-')){const target=root.querySelector(location.hash);if(target)target.open=true}draw();setInterval(draw,1000);
+})();
