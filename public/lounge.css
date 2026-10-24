@@ -72,3 +72,6 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 .ambient-scene .lounge-mote::after{background:radial-gradient(ellipse at 30% 24%,color-mix(in srgb,var(--l-paper),transparent 12%) 0%,color-mix(in srgb,var(--mote-color),transparent 52%) 44%,color-mix(in srgb,var(--mote-color),transparent 20%) 100%)!important;border-radius:inherit!important}
 .ambient-scene .lounge-mote::before{content:'';position:absolute;left:21%;top:16%;width:35%;height:15%;border-radius:50%;background:color-mix(in srgb,var(--l-paper),transparent 10%);box-shadow:0 0 2px var(--l-paper);transform:rotate(-34deg);z-index:1;pointer-events:none}
 :root[data-theme=dark] .ambient-scene .lounge-mote{opacity:.3!important}
+
+/* Center the decorative sparkle independently of inherited text line height. */
+.encouragement-symbol{display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;padding:0!important;box-sizing:border-box;align-self:center}
