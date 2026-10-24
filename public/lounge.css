@@ -84,3 +84,5 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 #chapter-three .form-check{flex-wrap:wrap;gap:8px 12px}.section-completed-time{font-size:12px;font-weight:400;color:var(--l-sage);margin-left:auto;font-variant-numeric:tabular-nums}.section-completed-time[hidden]{display:none!important}@media(max-width:460px){.section-completed-time{margin-left:30px;flex-basis:100%}}
 
 .challenge-result{font-size:12px;color:var(--l-sage);font-variant-numeric:tabular-nums}.challenge-result[hidden]{display:none!important}.challenge-banner button[hidden]{display:none!important}
+
+.section-challenge>.challenge-banner{flex-basis:100%;width:100%;max-width:none;margin:4px 0 0;padding:14px 16px}.section-challenge .challenge-return,.section-challenge .challenge-status{display:none}.section-challenge .challenge-countdown{margin-right:auto}.section-challenge .challenge-banner{scroll-margin-top:20px}
