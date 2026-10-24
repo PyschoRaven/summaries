@@ -114,3 +114,20 @@
  });
  window.addEventListener('hashchange',()=>{const section=root.querySelector(location.hash.startsWith('#study-section-')?location.hash:'#no-active-section');if(section)section.open=true});if(location.hash.startsWith('#study-section-')){const target=root.querySelector(location.hash);if(target)target.open=true}draw();setInterval(draw,1000);
 })();
+// Record section reading time, following the most recently opened/used section.
+(()=>{
+ const chapter=Number(document.body.dataset.chapter);if(!chapter)return;const sections=[...document.querySelectorAll('main details.section')];if(!sections.length)return;
+ const key='study-chapter-'+chapter+'-section-times';let saved={};try{saved=JSON.parse(localStorage.getItem(key))||{}}catch(e){}
+ const records=sections.map((section,i)=>{const old=saved[i]||{};return{elapsed:Number.isFinite(old.elapsed)&&old.elapsed>=0?old.elapsed:0,completedMs:Number.isFinite(old.completedMs)&&old.completedMs>=0?old.completedMs:null}});
+ let active=sections.findIndex(s=>s.open),last=Date.now();const labels=[];const checks=sections.map(s=>s.querySelector('input[type="checkbox"]'));
+ function persist(){try{localStorage.setItem(key,JSON.stringify(records))}catch(e){}}
+ function collect(){const now=Date.now();if(active>=0&&!document.hidden&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now}
+ function format(ms){const t=Math.max(1,Math.round(ms/1000)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return(h?h+'h ':'')+(m?m+'m ':'')+(s||!h&&!m?s+'s':'')}
+ function draw(i){const c=checks[i],label=labels[i];if(!c||!label)return;label.hidden=!c.checked;label.textContent=c.checked?(records[i].completedMs===null?'Completion time not recorded':'Completed in '+format(records[i].completedMs)):''}
+ function select(i){collect();if(sections[i].open)active=i}
+ sections.forEach((section,i)=>{const c=checks[i];if(!c)return;const label=document.createElement('span');label.className='section-completed-time';label.setAttribute('aria-live','polite');c.closest('label').append(label);labels[i]=label;draw(i);
+  section.addEventListener('pointerdown',()=>select(i));section.addEventListener('focusin',()=>select(i));section.addEventListener('toggle',()=>{collect();if(section.open)active=i;else if(active===i)active=sections.findIndex((s,j)=>s.open&&!checks[j]?.checked);persist()});
+  c.addEventListener('change',()=>{const now=Date.now();if(c.checked&&active===i&&!document.hidden&&section.open)records[i].elapsed+=Math.max(0,now-last);else collect();last=now;if(c.checked){if(records[i].completedMs===null)records[i].completedMs=records[i].elapsed}else{records[i].completedMs=null;if(section.open)active=i}draw(i);persist()});
+ });
+ document.addEventListener('visibilitychange',()=>{const now=Date.now();if(document.hidden&&active>=0&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now;persist()});window.addEventListener('pagehide',()=>{collect();persist()});setInterval(()=>{collect();persist()},5000);
+})();
