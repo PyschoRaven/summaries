@@ -44,11 +44,23 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 .quran-actions .btn:focus:not(:focus-visible){outline:none}
 .quran-actions .btn:focus-visible{outline:2px solid var(--l-sage)!important;outline-offset:4px}
 
-.quran-arabic {
-  font-size: 28px;
-  line-height: 2.1;
+
+
+/* One bundled font for both local and Netlify; no installed-font fallback. */
+@font-face {
+  font-family: "Study Quran Arabic";
+  src: url("./fonts/NotoNaskhArabic.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+#chapter-three .quran-arabic {
+  font-family: "Study Quran Arabic", serif !important;
+  font-size: 23px !important;
+  font-weight: 400 !important;
+  line-height: 2.55 !important;
   text-align: center;
   overflow-wrap: anywhere;
-  font-family: "Traditional Arabic", "Noto Naskh Arabic", Amiri, serif !important;
-  margin: 16px 0px;
+  margin: 16px 0;
+  font-synthesis: none;
 }
