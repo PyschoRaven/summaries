@@ -81,3 +81,4 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 .encouragement-symbol::before,.encouragement-symbol::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);clip-path:polygon(50% 0%,64% 36%,100% 50%,64% 64%,50% 100%,36% 64%,0% 50%,36% 36%);pointer-events:none}
 .encouragement-symbol::before{width:15px;height:15px;background:var(--l-sage)}
 .encouragement-symbol::after{width:9px;height:9px;background:var(--l-paper)}
+#chapter-three .form-check{flex-wrap:wrap;gap:8px 12px}.section-completed-time{font-size:12px;font-weight:400;color:var(--l-sage);margin-left:auto;font-variant-numeric:tabular-nums}.section-completed-time[hidden]{display:none!important}@media(max-width:460px){.section-completed-time{margin-left:30px;flex-basis:100%}}
