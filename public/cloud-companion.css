@@ -169,3 +169,9 @@
 :root[data-theme="dark"] .messages .message{background:var(--l-paper)!important;border-color:var(--l-line)!important;border-top-color:var(--l-sage)!important;color:var(--l-ink)!important}:root[data-theme="dark"] .messages .message :is(strong,p){color:var(--l-ink)!important}:root[data-theme="dark"] .messages .message button{background:var(--l-paper);border-color:var(--l-line);color:var(--l-ink)}
 
 .messages .idle-warning-progress{display:none!important}
+
+/* Page content paints above the decorative background. */
+body{isolation:isolate}.bubble-field{z-index:-1!important}
+.study-timer-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-basis:100%;width:100%;flex-wrap:wrap}.study-timer-actions .salah-controls{margin-right:auto}.study-timer-actions .reset-chapter-time{margin-left:auto}
+.companion .study-clock-value{white-space:nowrap!important;letter-spacing:.02em!important}.cloud-timer-status{font-size:9px!important;line-height:1.15;color:#78658d;font-weight:600;letter-spacing:.04em}.cloud-timer-status[hidden]{display:none!important}
+.companion .poof-art{inset:0!important;width:220px!important;height:168px!important;object-fit:contain;object-position:center;z-index:2}.companion.poofing .mini-pause-cloud{visibility:hidden}
