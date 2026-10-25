@@ -135,3 +135,6 @@
  });
  window.addEventListener('study-reset-time',e=>{if(e.detail.chapter===chapter){records.forEach(r=>{r.elapsed=0;r.completedMs=null});last=Date.now();sections.forEach((_,i)=>draw(i));persist()}});document.addEventListener('visibilitychange',()=>{const now=Date.now();if(document.hidden&&active>=0&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now;persist()});window.addEventListener('pagehide',()=>{collect();persist()});setInterval(()=>{collect();persist()},5000);
 })();
+
+// Remove superseded document headings even when an older HTML page was cached.
+(()=>{document.querySelectorAll('main h3,main p').forEach(el=>{const text=el.textContent.replace(/\s+/g,' ').trim();if(text==='🚀 COMPLETE POWERPOINT MASTER NOTES'||text==='Condensed, Organized, Memorizable')el.remove()})})();
