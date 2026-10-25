@@ -1,0 +1,14 @@
+(()=>{
+ const STUDY_MINUTES=50,BREAK_MINUTES=25,key='study-enforced-break-v1';
+ const studyMs=STUDY_MINUTES*60000,breakMs=BREAK_MINUTES*60000;
+ function read(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+ function save(v){try{localStorage.setItem(key,JSON.stringify(v))}catch(e){}}
+ let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt))cycle={startedAt:Date.now(),breakUntil:0};save(cycle);
+ const screen=document.createElement('div');screen.className='enforced-break';screen.hidden=true;screen.setAttribute('role','dialog');screen.setAttribute('aria-modal','true');screen.setAttribute('aria-label','Required study break');
+ const card=document.createElement('div');card.className='enforced-break-card';const title=document.createElement('h2');title.textContent='Time to take care of yourself';const message=document.createElement('p');message.textContent='Your 25-minute break has started. Step away, walk around, and have some water. Your notes will unlock automatically.';const time=document.createElement('p');time.className='enforced-break-time';const hint=document.createElement('p');hint.textContent='Refreshing or changing chapters will keep this break running.';card.append(title,message,time,hint);screen.append(card);document.body.append(screen);
+ const targets=[document.getElementById('chapter-three'),document.querySelector('.chapter-nav')].filter(Boolean);
+ function tick(){const now=Date.now();cycle=read()||cycle;if(cycle.breakUntil&&now>=cycle.breakUntil){cycle={startedAt:now,breakUntil:0};save(cycle)}else if(!cycle.breakUntil&&now-cycle.startedAt>=studyMs){cycle.breakUntil=cycle.startedAt+studyMs+breakMs;if(now>=cycle.breakUntil)cycle={startedAt:now,breakUntil:0};save(cycle)}const locked=cycle.breakUntil>now;document.body.dataset.studyLocked=String(locked);screen.hidden=!locked;targets.forEach(el=>el.inert=locked);document.body.classList.toggle('study-break-locked',locked);const left=Math.max(0,Math.ceil((cycle.breakUntil-now)/1000));time.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');}
+ tick();setInterval(tick,1000);window.addEventListener('storage',tick);document.addEventListener('visibilitychange',tick);
+ const chapter=Number(document.body.dataset.chapter);if(chapter){const button=document.createElement('button');button.type='button';button.className='btn reset-chapter-time';button.textContent='Reset chapter time';button.addEventListener('click',()=>{if(!confirm('Reset reading time for this chapter and its sections? Your completed sections will stay checked.'))return;try{localStorage.removeItem('study-chapter-'+chapter+'-time-ms');localStorage.removeItem('study-chapter-'+chapter+'-section-times')}catch(e){}window.dispatchEvent(new CustomEvent('study-reset-time',{detail:{chapter}}));});const clocks=document.querySelector('.study-clocks');if(clocks)clocks.append(button)}
+})();
+

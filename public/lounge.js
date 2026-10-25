@@ -90,14 +90,14 @@
  const bar=root.querySelector('.lounge-bar');if(bar)bar.after(panel);else root.prepend(panel);
  const key='study-chapter-'+chapter+'-time-ms';let last=now,pending=0,lastSave=now;
  const total=()=>Math.max(0,Number(read(localStorage,key))||0);
- function collect(){const t=Date.now();if(!document.hidden&&chapter)pending+=Math.max(0,t-last);last=t}
+ function collect(){const t=Date.now();if(!document.hidden&&document.body.dataset.studyLocked!=='true'&&chapter)pending+=Math.max(0,t-last);last=t}
  function persist(){if(chapter&&pending>0){write(localStorage,key,total()+pending);pending=0}lastSave=Date.now()}
  function updateCards(){root.querySelectorAll('[data-progress-chapter]').forEach(card=>{const n=Number(card.dataset.progressChapter);let time=card.querySelector('.chapter-time-spent');if(!time){time=document.createElement('span');time.className='chapter-time-spent';card.append(time)}const saved=Math.max(0,Number(read(localStorage,'study-chapter-'+n+'-time-ms'))||0);time.textContent='Time studied · '+format(saved)})}
  function draw(){visitValue.textContent=format(Date.now()-start);if(chapterValue)chapterValue.textContent=format(total()+pending)}
  function tick(){collect();if(Date.now()-lastSave>=5000)persist();draw()}
  document.addEventListener('visibilitychange',()=>{const t=Date.now();if(document.hidden&&chapter)pending+=Math.max(0,t-last);last=t;persist();draw();if(!document.hidden)updateCards()});
  window.addEventListener('pagehide',()=>{collect();persist()});window.addEventListener('pageshow',()=>{last=Date.now();draw();updateCards()});window.addEventListener('storage',e=>{if(e.key?.endsWith('-time-ms')){draw();updateCards()}});
- draw();updateCards();setInterval(tick,1000);
+ window.addEventListener('study-reset-time',e=>{if(e.detail.chapter===chapter){pending=0;last=Date.now();draw()}});draw();updateCards();setInterval(tick,1000);
 })();
 // Optional section challenges; one active countdown per browser tab.
 (()=>{
@@ -125,7 +125,7 @@
  const records=sections.map((section,i)=>{const old=saved[i]||{};return{elapsed:Number.isFinite(old.elapsed)&&old.elapsed>=0?old.elapsed:0,completedMs:Number.isFinite(old.completedMs)&&old.completedMs>=0?old.completedMs:null}});
  let active=sections.findIndex(s=>s.id===location.hash.slice(1)&&s.open);if(active<0)active=sections.findIndex(s=>s.open);let last=Date.now();document.body.dataset.sectionTimingReady='true';const labels=[];const checks=sections.map(s=>s.querySelector('input[type="checkbox"]'));
  function persist(){try{localStorage.setItem(key,JSON.stringify(records))}catch(e){}}
- function collect(){const now=Date.now();if(active>=0&&!document.hidden&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now}
+ function collect(){const now=Date.now();if(active>=0&&!document.hidden&&document.body.dataset.studyLocked!=='true'&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now}
  function format(ms){const t=Math.max(1,Math.round(ms/1000)),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return(h?h+'h ':'')+(m?m+'m ':'')+(s||!h&&!m?s+'s':'')}
  function draw(i){const c=checks[i],label=labels[i];if(!c||!label)return;label.hidden=!c.checked;label.textContent=c.checked?(records[i].completedMs===null?'Completion time not recorded':'Completed in '+format(records[i].completedMs)):''}
  function select(i){collect();if(sections[i].open)active=i}
@@ -133,5 +133,5 @@
   section.addEventListener('pointerdown',()=>select(i));section.addEventListener('focusin',()=>select(i));section.addEventListener('toggle',()=>{collect();if(section.open)active=i;else if(active===i)active=sections.findIndex((s,j)=>s.open&&!checks[j]?.checked);persist()});
   c.addEventListener('change',()=>{const now=Date.now();if(c.checked&&active===i&&!document.hidden&&section.open)records[i].elapsed+=Math.max(0,now-last);else collect();last=now;if(c.checked){if(records[i].completedMs===null)records[i].completedMs=records[i].elapsed}else{records[i].completedMs=null;if(section.open)active=i}draw(i);persist()});
  });
- document.addEventListener('visibilitychange',()=>{const now=Date.now();if(document.hidden&&active>=0&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now;persist()});window.addEventListener('pagehide',()=>{collect();persist()});setInterval(()=>{collect();persist()},5000);
+ window.addEventListener('study-reset-time',e=>{if(e.detail.chapter===chapter){records.forEach(r=>{r.elapsed=0;r.completedMs=null});last=Date.now();sections.forEach((_,i)=>draw(i));persist()}});document.addEventListener('visibilitychange',()=>{const now=Date.now();if(document.hidden&&active>=0&&sections[active].open&&!checks[active]?.checked)records[active].elapsed+=Math.max(0,now-last);last=now;persist()});window.addEventListener('pagehide',()=>{collect();persist()});setInterval(()=>{collect();persist()},5000);
 })();
