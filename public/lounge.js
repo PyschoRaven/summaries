@@ -71,7 +71,7 @@
  const toast=document.createElement('aside');toast.className='wellbeing-reminder';toast.hidden=true;toast.setAttribute('aria-label','Wellbeing break reminder');const heading=document.createElement('strong');heading.textContent='Time for a little reset';const message=document.createElement('p');message.setAttribute('role','status');message.setAttribute('aria-live','polite');const done=document.createElement('button');done.className='btn';done.type='button';done.textContent='Got it';done.addEventListener('click',()=>{toast.hidden=true});toast.append(heading,message,done);document.body.append(toast);
  function draw(){toggle.textContent=paused?'Resume reminders':'Pause reminders';toggle.setAttribute('aria-pressed',String(paused))}
  const messages=['Stand up, walk around for a moment, and have a sip of water.','Give yourself a short break: stretch your legs and drink some water.','Time to stand up and move a little. Your water bottle could use a visit, too.'];let index=0;
- function tick(){clearTimeout(timer);paused=get('study-breaks-paused')==='true';draw();if(paused){timer=setTimeout(tick,30000);return}due=Number(get('study-break-due'))||due;if(!document.hidden&&Date.now()>=due){due=Date.now()+period;set('study-break-due',due);toast.hidden=false;message.textContent=messages[index++%messages.length]}timer=setTimeout(tick,Math.max(250,Math.min(due-Date.now(),30000)))}
+ function tick(){clearTimeout(timer);paused=get('study-breaks-paused')==='true';draw();if(paused){timer=setTimeout(tick,30000);return}due=Number(get('study-break-due'))||due;if(!document.hidden&&Date.now()>=due){due=Date.now()+period;set('study-break-due',due);toast.hidden=false;message.textContent=messages[index++%messages.length];window.dispatchEvent(new Event('study-notification'))}timer=setTimeout(tick,Math.max(250,Math.min(due-Date.now(),30000)))}
  toggle.addEventListener('click',()=>{paused=!paused;set('study-breaks-paused',paused);if(paused)toast.hidden=true;else{due=Date.now()+period;set('study-break-due',due)}tick()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});window.addEventListener('storage',e=>{if(e.key==='study-breaks-paused'||e.key==='study-break-due')tick()});draw();tick();
 })();
 // Visit clock survives chapter navigation; per-chapter reading time is saved locally.
@@ -138,3 +138,14 @@
 
 // Remove superseded document headings even when an older HTML page was cached.
 (()=>{document.querySelectorAll('main h3,main p').forEach(el=>{const text=el.textContent.replace(/\s+/g,' ').trim();if(text==='🚀 COMPLETE POWERPOINT MASTER NOTES'||text==='Condensed, Organized, Memorizable')el.remove()})})();
+// Gentle notification audio, enabled by a user gesture and remembered locally.
+(()=>{
+ const bar=document.querySelector('.lounge-bar');if(!bar)return;let enabled=false,context,lastPlayed=-Infinity;
+ try{enabled=localStorage.getItem('study-notification-sound')==='true'}catch(e){}
+ const button=document.createElement('button');button.type='button';button.className='btn notification-sound';bar.append(button);
+ function draw(){button.textContent=enabled?(context?.state==='running'?'Sound on':'Tap to enable sound'):'Sound off';button.setAttribute('aria-pressed',String(enabled))}
+ async function arm(){if(!enabled)return;try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error('Audio unavailable');if(!context)context=new Audio();await context.resume();draw()}catch(e){button.textContent='Sound unavailable'}}
+ function chime(){if(!enabled||context?.state!=='running'||Date.now()-lastPlayed<1500)return;lastPlayed=Date.now();[523.25,659.25,783.99].forEach((frequency,i)=>{const oscillator=context.createOscillator(),gain=context.createGain(),start=context.currentTime+i*.16;oscillator.type='sine';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.055,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+.6);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(start);oscillator.stop(start+.62)})}
+ button.addEventListener('click',async()=>{if(enabled&&context?.state==='running'){enabled=false;draw()}else{enabled=true;await arm();chime()}try{localStorage.setItem('study-notification-sound',String(enabled))}catch(e){}});
+ document.addEventListener('pointerdown',()=>{if(enabled&&context?.state!=='running')arm()});document.addEventListener('keydown',()=>{if(enabled&&context?.state!=='running')arm()});window.addEventListener('study-notification',chime);draw();
+})();
