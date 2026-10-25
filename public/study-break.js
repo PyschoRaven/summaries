@@ -4,7 +4,7 @@
  const sessionKey='study-break-session-v3';
  function localCycle(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
  function read(){const shared=localCycle();if(shared&&Number.isFinite(shared.breakUntil)&&shared.breakUntil>0)return shared;try{return JSON.parse(sessionStorage.getItem(sessionKey))}catch(e){return null}}
- function save(v){try{sessionStorage.setItem(sessionKey,JSON.stringify(v))}catch(e){}try{if(v.breakUntil>0)localStorage.setItem(key,JSON.stringify(v));else{const old=localCycle();if(!old||!old.breakUntil||old.breakUntil<=Date.now())localStorage.removeItem(key)}}catch(e){}}
+ function save(v){try{sessionStorage.setItem(sessionKey,JSON.stringify(v))}catch(e){}try{if(v.breakUntil>0)localStorage.setItem(key,JSON.stringify(v));else{const old=localCycle();if(!old||!old.breakUntil||old.breakUntil<=(window.studyNow?.()??Date.now()))localStorage.removeItem(key)}}catch(e){}}
  // A restored tab can retain sessionStorage, so storage alone does not identify a new visit.
  const handoffKey='study-break-navigation-v1';
  let continueVisit=false;
@@ -12,15 +12,15 @@
   const navigation=window.performance?.getEntriesByType('navigation')[0];
   const handoff=JSON.parse(sessionStorage.getItem(handoffKey));
   sessionStorage.removeItem(handoffKey);
-  continueVisit=navigation?.type==='reload'||Boolean(handoff&&handoff.url===window.location.href&&Date.now()-handoff.at<15000);
+  continueVisit=navigation?.type==='reload'||Boolean(handoff&&handoff.url===window.location.href&&(window.studyNow?.()??Date.now())-handoff.at<15000);
   if(!continueVisit)sessionStorage.removeItem(sessionKey);
  }catch(e){}
  document.addEventListener('click',event=>{
   const link=event.target.closest?.('a[href]');
   if(!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||link.download||link.target&&link.target!=='_self')return;
-  try{const target=new URL(link.href,window.location.href);if(target.origin===window.location.origin&&target.pathname!==window.location.pathname)sessionStorage.setItem(handoffKey,JSON.stringify({url:target.href,at:Date.now()}))}catch(e){}
+  try{const target=new URL(link.href,window.location.href);if(target.origin===window.location.origin&&target.pathname!==window.location.pathname)sessionStorage.setItem(handoffKey,JSON.stringify({url:target.href,at:(window.studyNow?.()??Date.now())}))}catch(e){}
  });
- let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt)||(cycle.breakUntil&&cycle.breakUntil<=Date.now()))cycle={startedAt:Date.now(),elapsedMs:0,breakUntil:0};save(cycle);
+ let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt)||(cycle.breakUntil&&cycle.breakUntil<=(window.studyNow?.()??Date.now())))cycle={startedAt:(window.studyNow?.()??Date.now()),elapsedMs:0,breakUntil:0};save(cycle);
  const screen=document.createElement('div');screen.className='enforced-break';screen.hidden=true;screen.setAttribute('role','dialog');screen.setAttribute('aria-modal','true');screen.setAttribute('aria-label','Required study break');
  const card=document.createElement('div');card.className='enforced-break-card';const title=document.createElement('h2');title.textContent='Time to take care of yourself';const message=document.createElement('p');message.textContent='Your 25-minute break has started. Step away, walk around, and have some water. Your notes will unlock automatically.';const time=document.createElement('p');time.className='enforced-break-time';const hint=document.createElement('p');hint.textContent='Refreshing or changing chapters will keep this break running.';card.append(title,message,time,hint);screen.append(card);document.body.append(screen);
 
@@ -39,7 +39,7 @@
  const warning=document.createElement('aside');warning.className='break-warning';warning.hidden=true;warning.setAttribute('aria-label','Upcoming study break');const warningTitle=document.createElement('strong');warningTitle.textContent='Your break is coming up';const warningText=document.createElement('p');warningText.setAttribute('role','status');warningText.textContent='Your 25-minute break starts in 5 minutes. Wrap up your section; your progress is saved automatically.';const warningTime=document.createElement('p');warningTime.className='break-warning-countdown';const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='btn';dismiss.textContent='Got it';dismiss.addEventListener('click',()=>{warning.hidden=true});warning.append(warningTitle,warningText,warningTime,dismiss);document.body.append(warning);
  function formatTime(ms){const seconds=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
  function updateWarning(now,locked){const remaining=cycle.startedAt+studyMs-now;upcomingTime.textContent=locked?'On break':formatTime(remaining)+(cycle.paused?' · Paused':'');if(locked){warning.hidden=true;return}if(remaining>0&&remaining<=5*60000&&!cycle.warned){cycle.warned=true;save(cycle);window.showStudyNotice(warning);window.dispatchEvent(new Event('study-notification'))}warningTime.textContent='Break starts in '+formatTime(remaining)}
- const pauseButton=document.createElement('button');pauseButton.type='button';pauseButton.className='btn pause-study-timer';if(clockPanel)clockPanel.append(pauseButton);
+ const companion=window.studyCloud;companion.rain.append(upcoming);const pauseButton=companion.pause;
  const idleWarning=document.createElement('aside');idleWarning.className='break-warning inactivity-warning';idleWarning.hidden=true;idleWarning.setAttribute('aria-label','Study timer inactivity warning');
  const idleTitle=document.createElement('strong');idleTitle.textContent='Still studying?';const idleText=document.createElement('p');idleText.setAttribute('role','status');const keepGoing=document.createElement('button');keepGoing.type='button';keepGoing.className='btn';keepGoing.textContent='Hide warning';idleWarning.append(idleTitle,idleText,keepGoing);document.body.append(idleWarning);
  function clearIdleWarning(){idleWarning.hidden=true;delete cycle.idleWarningAt;cycle.idleMs=0;}
@@ -48,19 +48,19 @@
  function activity(){if(cycle.paused||cycle.breakUntil||cycle.idleWarningAt)return;cycle.idleMs=0;save(cycle)}
  document.addEventListener('pointermove',activity,{passive:true});document.addEventListener('pointerdown',activity,{passive:true});document.addEventListener('keydown',activity);document.addEventListener('scroll',activity,{passive:true});
  const targets=[document.getElementById('chapter-three'),document.querySelector('.chapter-nav')].filter(Boolean);
- let wasLocked=false,lastTick=Date.now(),wasVisible=!document.hidden;
- function tick(){const now=Date.now();cycle=read()||cycle;
+ let wasLocked=false,lastTick=(window.studyNow?.()??Date.now()),wasVisible=!document.hidden;
+ function tick(){const now=(window.studyNow?.()??Date.now());cycle=read()||cycle;
  if(cycle.breakUntil){if(now>=cycle.breakUntil){cycle={startedAt:now,elapsedMs:0,breakUntil:0};save(cycle)}}
- else{if(!Number.isFinite(cycle.elapsedMs))cycle.elapsedMs=0;if(wasVisible&&!cycle.paused){
+ else{if(!Number.isFinite(cycle.elapsedMs))cycle.elapsedMs=0;if(wasVisible&&!cycle.paused&&!window.studySalahLocked&&!window.studyIdleLocked){
  const delta=Math.max(0,now-lastTick);cycle.elapsedMs+=delta;cycle.idleMs=(cycle.idleMs||0)+delta;
- if(cycle.idleWarningAt&&now>=cycle.idleWarningAt+20000){cycle.elapsedMs-=Math.max(0,now-Math.max(lastTick,cycle.idleWarningAt+20000));cycle.paused=true;clearIdleWarning()}
- else if(!cycle.idleWarningAt&&cycle.idleMs>=300000){cycle.idleWarningAt=now;window.showStudyNotice(idleWarning,20000);window.dispatchEvent(new Event('study-notification'))}
+ if(cycle.idleWarningAt&&now>=cycle.idleWarningAt+15000){cycle.elapsedMs-=Math.max(0,now-Math.max(lastTick,cycle.idleWarningAt+15000));cycle.paused=true;clearIdleWarning()}
+ else if(!cycle.idleWarningAt&&cycle.idleMs>=300000){cycle.idleWarningAt=now;window.showStudyNotice(idleWarning,15000);window.dispatchEvent(new Event('study-notification'))}
  }
- if(cycle.idleWarningAt)idleText.textContent='No activity for 5 minutes. Click Hide warning within '+Math.max(0,Math.ceil((cycle.idleWarningAt+20000-now)/1000))+' seconds to keep the timer running.';cycle.startedAt=now-cycle.elapsedMs;if(cycle.elapsedMs>=studyMs)cycle.breakUntil=now+breakMs;save(cycle)}
+ if(cycle.idleWarningAt)idleText.textContent='No activity for 5 minutes. Click Hide warning within '+Math.max(0,Math.ceil((cycle.idleWarningAt+15000-now)/1000))+' seconds to keep the timer running.';cycle.startedAt=now-cycle.elapsedMs;if(cycle.elapsedMs>=studyMs)cycle.breakUntil=now+breakMs;save(cycle)}
  lastTick=now;wasVisible=!document.hidden;
- const locked=cycle.breakUntil>now;pauseButton.disabled=locked;pauseButton.textContent=cycle.paused?'Resume study timer':'Pause study timer';pauseButton.setAttribute('aria-pressed',String(Boolean(cycle.paused)));if(locked)clearIdleWarning();document.body.dataset.studyLocked=String(locked);screen.hidden=!locked;if(locked&&!wasLocked)window.dispatchEvent(new Event('study-notification'));wasLocked=locked;targets.forEach(el=>el.inert=locked);document.body.classList.toggle('study-break-locked',locked);const left=Math.max(0,Math.ceil((cycle.breakUntil-now)/1000));time.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');updateReading(now,locked);updateWarning(now,locked);}
+ const locked=cycle.breakUntil>now;pauseButton.disabled=locked;pauseButton.setAttribute('aria-label',cycle.paused?'Resume study timer':'Pause study timer');pauseButton.title=cycle.paused?'Resume study timer':'Pause study timer';companion.setPaused(Boolean(cycle.paused));pauseButton.setAttribute('aria-pressed',String(Boolean(cycle.paused)));if(locked)clearIdleWarning();document.body.dataset.studyLocked=String(locked||Boolean(window.studySalahLocked||window.studyIdleLocked));screen.hidden=!locked;if(locked&&!wasLocked)window.dispatchEvent(new Event('study-notification'));wasLocked=locked;targets.forEach(el=>el.inert=locked||Boolean(window.studySalahLocked||window.studyIdleLocked));document.body.classList.toggle('study-break-locked',locked);const left=Math.max(0,Math.ceil((cycle.breakUntil-now)/1000));time.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');updateReading(now,locked);updateWarning(now,locked);}
 
- tick();setInterval(tick,1000);window.addEventListener('storage',tick);document.addEventListener('visibilitychange',tick);window.addEventListener('pagehide',()=>{tick();wasVisible=false});window.addEventListener('pageshow',()=>{lastTick=Date.now();wasVisible=!document.hidden;tick()});
+ tick();setInterval(tick,1000);window.addEventListener('storage',tick);document.addEventListener('visibilitychange',tick);window.addEventListener('pagehide',()=>{tick();wasVisible=false});window.addEventListener('pageshow',()=>{lastTick=(window.studyNow?.()??Date.now());wasVisible=!document.hidden;tick()});
  const chapter=Number(document.body.dataset.chapter);if(chapter){const button=document.createElement('button');button.type='button';button.className='btn reset-chapter-time';button.textContent='Reset chapter time';button.addEventListener('click',()=>{if(!confirm('Reset reading time for this chapter and its sections? Your completed sections will stay checked.'))return;try{localStorage.removeItem('study-chapter-'+chapter+'-time-ms');localStorage.removeItem('study-chapter-'+chapter+'-section-times')}catch(e){}window.dispatchEvent(new CustomEvent('study-reset-time',{detail:{chapter}}));});const clocks=document.querySelector('.study-clocks');if(clocks)clocks.append(button)}
 })();
 
