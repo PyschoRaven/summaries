@@ -5,6 +5,21 @@
  function localCycle(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
  function read(){const shared=localCycle();if(shared&&Number.isFinite(shared.breakUntil)&&shared.breakUntil>0)return shared;try{return JSON.parse(sessionStorage.getItem(sessionKey))}catch(e){return null}}
  function save(v){try{sessionStorage.setItem(sessionKey,JSON.stringify(v))}catch(e){}try{if(v.breakUntil>0)localStorage.setItem(key,JSON.stringify(v));else{const old=localCycle();if(!old||!old.breakUntil||old.breakUntil<=Date.now())localStorage.removeItem(key)}}catch(e){}}
+ // A restored tab can retain sessionStorage, so storage alone does not identify a new visit.
+ const handoffKey='study-break-navigation-v1';
+ let continueVisit=false;
+ try{
+  const navigation=window.performance?.getEntriesByType('navigation')[0];
+  const handoff=JSON.parse(sessionStorage.getItem(handoffKey));
+  sessionStorage.removeItem(handoffKey);
+  continueVisit=navigation?.type==='reload'||Boolean(handoff&&handoff.url===window.location.href&&Date.now()-handoff.at<15000);
+  if(!continueVisit)sessionStorage.removeItem(sessionKey);
+ }catch(e){}
+ document.addEventListener('click',event=>{
+  const link=event.target.closest?.('a[href]');
+  if(!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||link.download||link.target&&link.target!=='_self')return;
+  try{const target=new URL(link.href,window.location.href);if(target.origin===window.location.origin&&target.pathname!==window.location.pathname)sessionStorage.setItem(handoffKey,JSON.stringify({url:target.href,at:Date.now()}))}catch(e){}
+ });
  let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt)||(cycle.breakUntil&&cycle.breakUntil<=Date.now()))cycle={startedAt:Date.now(),elapsedMs:0,breakUntil:0};save(cycle);
  const screen=document.createElement('div');screen.className='enforced-break';screen.hidden=true;screen.setAttribute('role','dialog');screen.setAttribute('aria-modal','true');screen.setAttribute('aria-label','Required study break');
  const card=document.createElement('div');card.className='enforced-break-card';const title=document.createElement('h2');title.textContent='Time to take care of yourself';const message=document.createElement('p');message.textContent='Your 25-minute break has started. Step away, walk around, and have some water. Your notes will unlock automatically.';const time=document.createElement('p');time.className='enforced-break-time';const hint=document.createElement('p');hint.textContent='Refreshing or changing chapters will keep this break running.';card.append(title,message,time,hint);screen.append(card);document.body.append(screen);
