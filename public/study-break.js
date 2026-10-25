@@ -1,9 +1,11 @@
 (()=>{
  const STUDY_MINUTES=50,BREAK_MINUTES=25,key='study-enforced-break-v1';
  const studyMs=STUDY_MINUTES*60000,breakMs=BREAK_MINUTES*60000;
- function read(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
- function save(v){try{localStorage.setItem(key,JSON.stringify(v))}catch(e){}}
- let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt))cycle={startedAt:Date.now(),breakUntil:0};save(cycle);
+ const sessionKey='study-break-session-v3';
+ function localCycle(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+ function read(){const shared=localCycle();if(shared&&Number.isFinite(shared.breakUntil)&&shared.breakUntil>0)return shared;try{return JSON.parse(sessionStorage.getItem(sessionKey))}catch(e){return null}}
+ function save(v){try{sessionStorage.setItem(sessionKey,JSON.stringify(v))}catch(e){}try{if(v.breakUntil>0)localStorage.setItem(key,JSON.stringify(v));else{const old=localCycle();if(!old||!old.breakUntil||old.breakUntil<=Date.now())localStorage.removeItem(key)}}catch(e){}}
+ let cycle=read();if(!cycle||!Number.isFinite(cycle.startedAt)||(cycle.breakUntil&&cycle.breakUntil<=Date.now()))cycle={startedAt:Date.now(),elapsedMs:0,breakUntil:0};save(cycle);
  const screen=document.createElement('div');screen.className='enforced-break';screen.hidden=true;screen.setAttribute('role','dialog');screen.setAttribute('aria-modal','true');screen.setAttribute('aria-label','Required study break');
  const card=document.createElement('div');card.className='enforced-break-card';const title=document.createElement('h2');title.textContent='Time to take care of yourself';const message=document.createElement('p');message.textContent='Your 25-minute break has started. Step away, walk around, and have some water. Your notes will unlock automatically.';const time=document.createElement('p');time.className='enforced-break-time';const hint=document.createElement('p');hint.textContent='Refreshing or changing chapters will keep this break running.';card.append(title,message,time,hint);screen.append(card);document.body.append(screen);
 
@@ -23,9 +25,14 @@
  function formatTime(ms){const seconds=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
  function updateWarning(now,locked){const remaining=cycle.startedAt+studyMs-now;upcomingTime.textContent=locked?'On break':formatTime(remaining);if(locked){warning.hidden=true;return}if(remaining>0&&remaining<=5*60000&&!cycle.warned){cycle.warned=true;save(cycle);warning.hidden=false;window.dispatchEvent(new Event('study-notification'))}warningTime.textContent='Break starts in '+formatTime(remaining)}
  const targets=[document.getElementById('chapter-three'),document.querySelector('.chapter-nav')].filter(Boolean);
- let wasLocked=false;
- function tick(){const now=Date.now();cycle=read()||cycle;if(cycle.breakUntil&&now>=cycle.breakUntil){cycle={startedAt:now,breakUntil:0};save(cycle)}else if(!cycle.breakUntil&&now-cycle.startedAt>=studyMs){cycle.breakUntil=cycle.startedAt+studyMs+breakMs;if(now>=cycle.breakUntil)cycle={startedAt:now,breakUntil:0};save(cycle)}const locked=cycle.breakUntil>now;document.body.dataset.studyLocked=String(locked);screen.hidden=!locked;if(locked&&!wasLocked)window.dispatchEvent(new Event('study-notification'));wasLocked=locked;targets.forEach(el=>el.inert=locked);document.body.classList.toggle('study-break-locked',locked);const left=Math.max(0,Math.ceil((cycle.breakUntil-now)/1000));time.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');updateReading(now,locked);updateWarning(now,locked);}
- tick();setInterval(tick,1000);window.addEventListener('storage',tick);document.addEventListener('visibilitychange',tick);
+ let wasLocked=false,lastTick=Date.now(),wasVisible=!document.hidden;
+ function tick(){const now=Date.now();cycle=read()||cycle;
+ if(cycle.breakUntil){if(now>=cycle.breakUntil){cycle={startedAt:now,elapsedMs:0,breakUntil:0};save(cycle)}}
+ else{if(!Number.isFinite(cycle.elapsedMs))cycle.elapsedMs=0;if(wasVisible)cycle.elapsedMs+=Math.max(0,now-lastTick);cycle.startedAt=now-cycle.elapsedMs;if(cycle.elapsedMs>=studyMs)cycle.breakUntil=now+breakMs;save(cycle)}
+ lastTick=now;wasVisible=!document.hidden;
+ const locked=cycle.breakUntil>now;document.body.dataset.studyLocked=String(locked);screen.hidden=!locked;if(locked&&!wasLocked)window.dispatchEvent(new Event('study-notification'));wasLocked=locked;targets.forEach(el=>el.inert=locked);document.body.classList.toggle('study-break-locked',locked);const left=Math.max(0,Math.ceil((cycle.breakUntil-now)/1000));time.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');updateReading(now,locked);updateWarning(now,locked);}
+
+ tick();setInterval(tick,1000);window.addEventListener('storage',tick);document.addEventListener('visibilitychange',tick);window.addEventListener('pagehide',()=>{tick();wasVisible=false});window.addEventListener('pageshow',()=>{lastTick=Date.now();wasVisible=!document.hidden;tick()});
  const chapter=Number(document.body.dataset.chapter);if(chapter){const button=document.createElement('button');button.type='button';button.className='btn reset-chapter-time';button.textContent='Reset chapter time';button.addEventListener('click',()=>{if(!confirm('Reset reading time for this chapter and its sections? Your completed sections will stay checked.'))return;try{localStorage.removeItem('study-chapter-'+chapter+'-time-ms');localStorage.removeItem('study-chapter-'+chapter+'-section-times')}catch(e){}window.dispatchEvent(new CustomEvent('study-reset-time',{detail:{chapter}}));});const clocks=document.querySelector('.study-clocks');if(clocks)clocks.append(button)}
 })();
 
