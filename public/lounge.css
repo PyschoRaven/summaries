@@ -104,3 +104,7 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 .study-notification-stack :is(.wellbeing-reminder,.break-warning){position:relative;inset:auto;width:100%;max-width:none;flex-shrink:0;pointer-events:auto;margin:0;box-sizing:border-box}
 .pause-study-timer{font-size:13px!important;padding:8px 12px!important}.pause-study-timer:disabled{opacity:.5;cursor:default}
 @media(max-width:500px){.study-notification-stack{right:16px;bottom:16px}}
+
+/* Text selected with the mouse or keyboard. */
+::selection{background:#dbc9ed;color:#302039;text-shadow:none}
+:root[data-theme="dark"] ::selection{background:#b99bd5;color:#211728;text-shadow:none}
