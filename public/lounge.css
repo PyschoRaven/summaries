@@ -93,3 +93,8 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 .break-upcoming{color:var(--l-muted)}.break-warning{position:fixed;right:24px;bottom:24px;z-index:1000;width:calc(100% - 40px);max-width:370px;padding:23px;border:1px solid var(--l-line);border-top:3px solid var(--l-peach);border-radius:17px;background:var(--l-paper);color:var(--l-ink);box-shadow:0 12px 45px #00000022}.break-warning[hidden]{display:none!important}.break-warning strong{font-size:16px}.break-warning p{font-size:14px;line-height:1.7;margin:12px 0}.break-warning .break-warning-countdown{color:var(--l-peach);font-weight:600;font-variant-numeric:tabular-nums}.break-warning .btn{font-size:13px!important}
 
 .notification-sound{font-size:13px!important;padding:8px 12px!important}.lounge-bar{justify-content:flex-start!important}.lounge-bar .lounge-brand{margin-right:auto}
+
+/* Highlight key terms without recoloring chapter titles or table headers. */
+:root{--study-term-color:#705486}
+:root[data-theme="dark"]{--study-term-color:#d2b8e8}
+#chapter-three main :is(p,li,blockquote,td,summary) strong{color:var(--study-term-color)!important}
