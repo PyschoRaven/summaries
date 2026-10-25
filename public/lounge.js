@@ -1,3 +1,9 @@
+// Notifications share a single stack, keeping each message visible independently.
+(()=>{
+ const stack=document.createElement('div');stack.className='study-notification-stack';stack.setAttribute('aria-label','Study notifications');document.body.append(stack);
+ const timers=new WeakMap();
+ window.showStudyNotice=(notice,duration=30000)=>{stack.append(notice);notice.hidden=false;clearTimeout(timers.get(notice));timers.set(notice,setTimeout(()=>{notice.hidden=true},duration));};
+})();
 (()=>{
  const doc=document.documentElement,toggle=document.getElementById('lounge-theme');
  function get(key){try{return localStorage.getItem(key)}catch(e){return null}}
@@ -71,7 +77,7 @@
  const toast=document.createElement('aside');toast.className='wellbeing-reminder';toast.hidden=true;toast.setAttribute('aria-label','Wellbeing break reminder');const heading=document.createElement('strong');heading.textContent='Time for a little reset';const message=document.createElement('p');message.setAttribute('role','status');message.setAttribute('aria-live','polite');const done=document.createElement('button');done.className='btn';done.type='button';done.textContent='Got it';done.addEventListener('click',()=>{toast.hidden=true});toast.append(heading,message,done);document.body.append(toast);
  function draw(){toggle.textContent=paused?'Resume reminders':'Pause reminders';toggle.setAttribute('aria-pressed',String(paused))}
  const messages=['Stand up, walk around for a moment, and have a sip of water.','Give yourself a short break: stretch your legs and drink some water.','Time to stand up and move a little. Your water bottle could use a visit, too.'];let index=0;
- function tick(){clearTimeout(timer);paused=get('study-breaks-paused')==='true';draw();if(paused){timer=setTimeout(tick,30000);return}due=Number(get('study-break-due'))||due;if(!document.hidden&&Date.now()>=due){due=Date.now()+period;set('study-break-due',due);toast.hidden=false;message.textContent=messages[index++%messages.length];window.dispatchEvent(new Event('study-notification'))}timer=setTimeout(tick,Math.max(250,Math.min(due-Date.now(),30000)))}
+ function tick(){clearTimeout(timer);paused=get('study-breaks-paused')==='true';draw();if(paused){timer=setTimeout(tick,30000);return}due=Number(get('study-break-due'))||due;if(!document.hidden&&Date.now()>=due){due=Date.now()+period;set('study-break-due',due);window.showStudyNotice(toast);message.textContent=messages[index++%messages.length];window.dispatchEvent(new Event('study-notification'))}timer=setTimeout(tick,Math.max(250,Math.min(due-Date.now(),30000)))}
  toggle.addEventListener('click',()=>{paused=!paused;set('study-breaks-paused',paused);if(paused)toast.hidden=true;else{due=Date.now()+period;set('study-break-due',due)}tick()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});window.addEventListener('storage',e=>{if(e.key==='study-breaks-paused'||e.key==='study-break-due')tick()});draw();tick();
 })();
 // Visit clock survives chapter navigation; per-chapter reading time is saved locally.
