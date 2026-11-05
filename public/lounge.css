@@ -128,3 +128,6 @@ body,button,input,select,textarea,.btn,.lounge-switch,#chapter-three h1,#chapter
 
 /* Notifications use the main site's rounded boxes, without speech tails. */
 .messages :is(.message,.idle-state-warning)::after,.study-notification-stack :is(.wellbeing-reminder,.break-warning)::after{display:none!important;content:none!important}
+
+/* Keep note wording while removing imported yellow/red highlighting. */
+#chapter-three main mark,#chapter-three main code{background:transparent!important;background-color:transparent!important;color:inherit!important}
