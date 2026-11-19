@@ -1,6 +1,6 @@
 # Study Lounge — Mobile Device Security
 
-An interactive study site for Chapters 1–8, with expandable notes, exam-answer reveals, completion tracking, dark mode, encouragement, Quran reading breaks, and optional five-minute wellbeing reminders.
+An interactive study site for Chapters 1–15 & 20, with expandable notes, exam-answer reveals, completion tracking, dark mode, encouragement, Quran reading breaks, and optional five-minute wellbeing reminders.
 
 ## Deployment
 
